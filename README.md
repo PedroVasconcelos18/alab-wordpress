@@ -204,16 +204,6 @@ trigger e o push volta a bastar.
 O item mais importante do §6 do playbook, e o único do checklist ainda em
 aberto. Comando na seção abaixo — rode antes de publicar qualquer conteúdo.
 
-### O blog está em inglês
-
-`<html lang="en-US">` e `og:locale=en_US`. Não há `WPLANG` no `.env.railway`
-nem no `config/application.php`, e não há `web/app/languages` — o pacote de
-idioma nunca foi instalado. Trocar pelo painel esbarra em `DISALLOW_FILE_MODS`,
-e mesmo instalando, o pacote cairia na imagem e sumiria no próximo deploy.
-
-O lugar certo é o provisionamento: `wp language core install pt_BR --activate`
-no `docker-entrypoint.sh`, junto com os plugins.
-
 ### Sem `robots.txt` no domínio
 
 `alabventure.com/robots.txt` responde 404, então o `sitemap_index.xml` do Rank
@@ -245,6 +235,43 @@ Uploads também vivem no volume (`/data/uploads`) e não estão em lugar nenhum 
 dele.
 
 ---
+
+## Idioma
+
+O site é `pt_BR`, e chegar nisso não foi óbvio: os **dois** caminhos normais
+estão fechados aqui.
+
+**Pelo `wp-config` não funciona.** É o que parece certo, e é o que falha em
+silêncio. O `get_locale()` do core lê a opção do banco assim:
+
+```php
+$db_locale = get_option( 'WPLANG' );
+if ( false !== $db_locale ) {
+    $locale = $db_locale;
+}
+```
+
+`false !==`, não `if ( $db_locale )`. A opção **existe** desde a instalação,
+com valor vazio — então ela sobrescreve a constante com `''` e o
+`if ( empty( $locale ) )` logo abaixo devolve `en_US`. A constante `WPLANG` só
+valeria se a linha não existisse no banco, que nunca é o caso.
+
+**Pelo painel também não.** O dropdown de *Configurações › Geral* lista apenas
+idioma já instalado, e `DISALLOW_FILE_MODS` — a mesma trava que impede plugin
+instalado pelo painel de sumir no deploy seguinte — proíbe o WordPress de
+baixar. Sem nenhum pacote na imagem, a única opção do dropdown é English.
+
+Então são duas peças, e cada uma resolve metade:
+
+| | |
+| --- | --- |
+| Os arquivos `.mo` | baixados **no build** por `docker/baixar-traducoes.php`, com a versão de cada pacote lida do que está instalado. Vão para `web/app/languages`, na imagem — nunca no volume, que é para dado |
+| A opção `WPLANG` | apontada pelo `docker-entrypoint.sh`, **só quando está vazia**. Trocar o idioma pelo painel continua valendo e não é revertido no próximo deploy |
+
+Trocar de idioma é `ALAB_LOCALE` nas variáveis — vale para core, tema e
+plugins de uma vez. Um pacote que ainda não exista para a versão instalada vira
+aviso no build, não erro: o efeito é string em inglês, não deploy derrubado. O
+core é a exceção, e falha o build.
 
 ## Plugins
 

@@ -9,6 +9,10 @@ web/app/uploads/*
 !web/app/uploads/.gitkeep
 web/app/cache/*
 
+# Traduções: baixadas no build a partir da versão instalada de cada pacote
+# (docker/baixar-traducoes.php). São ~3 MB de artefato derivado.
+web/app/languages/
+
 # WordPress
 web/wp
 web/.htaccess

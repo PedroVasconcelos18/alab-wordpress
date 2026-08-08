@@ -18,6 +18,7 @@ vendor
 web/wp
 web/app/plugins
 web/app/themes/twentytwentyfive
+web/app/languages
 
 **/node_modules
 

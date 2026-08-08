@@ -73,9 +73,10 @@ fi
 # nas duas trata catastrofe como rotina: o site volta no ar vazio, com 200 em
 # tudo, e ninguem e avisado de que o conteudo sumiu. O flag separa as duas.
 # ─────────────────────────────────────────────────────────────────────────────
-if [ "${ALAB_PROVISIONAR:-}" = "1" ]; then
-    WP="wp --path=/app/web/wp --allow-root"
+WP="wp --path=/app/web/wp --allow-root"
+BANCO="${DB_DIR:-$DADOS/database/}${DB_FILE:-.ht.sqlite}"
 
+if [ "${ALAB_PROVISIONAR:-}" = "1" ]; then
     if $WP core is-installed 2>/dev/null; then
         echo "alab-blog: WordPress ja instalado"
     else
@@ -109,6 +110,41 @@ if [ "${ALAB_PROVISIONAR:-}" = "1" ]; then
     echo "alab-blog: provisionado. Plugins ativos:"
     $WP plugin list --status=active --field=name 2>/dev/null | sed 's/^/  - /'
     echo "alab-blog: REMOVA ALAB_PROVISIONAR das variaveis."
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Idioma do site — roda em todo boot, e nao esta no bloco de provisionamento
+# de proposito: o site ja existia em ingles quando isto foi escrito.
+#
+# 🔴 Definir WPLANG no wp-config NAO funciona, e o motivo esta no core:
+#
+#     $db_locale = get_option( 'WPLANG' );
+#     if ( false !== $db_locale ) { $locale = $db_locale; }
+#
+# E `false !==`, nao `if ( $db_locale )`. A opcao EXISTE desde a instalacao,
+# com valor vazio — entao ela sobrescreve a constante com '' e o site volta
+# para en_US. A constante so valeria se a linha nao existisse no banco.
+#
+# Pelo painel tambem nao dava: com DISALLOW_FILE_MODS o dropdown lista so
+# idioma ja instalado, e o WordPress nao pode baixar. Os .mo agora vem na
+# imagem (ver Dockerfile); falta apontar a opcao, uma vez.
+#
+# So age quando a opcao esta VAZIA. Trocar o idioma pelo painel continua
+# valendo e nao e revertido no proximo deploy.
+#
+# O teste de arquivo no banco nao e zelo: sem ele, um volume perdido faria o
+# wp-cli criar um SQLite vazio aqui, e a catastrofe voltaria ao ar como site em
+# branco com 200 em tudo — exatamente o que o resto deste arquivo evita.
+# ─────────────────────────────────────────────────────────────────────────────
+if [ -n "${ALAB_LOCALE:-}" ] && [ -f "$BANCO" ]; then
+    atual=$($WP option get WPLANG 2>/dev/null || true)
+
+    if [ -z "$atual" ]; then
+        echo "alab-blog: idioma vazio, definindo ${ALAB_LOCALE}"
+        $WP option update WPLANG "${ALAB_LOCALE}" || true
+    else
+        echo "alab-blog: idioma ja definido (${atual})"
+    fi
 fi
 
 exec "$@"

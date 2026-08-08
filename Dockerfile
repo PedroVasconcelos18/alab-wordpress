@@ -78,6 +78,23 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
 
 COPY . .
+
+# 🔴 Tradução tem que vir na imagem, e o motivo não é performance.
+#
+# `DISALLOW_FILE_MODS` desliga o instalador de idioma do WordPress — a mesma
+# trava que impede plugin instalado pelo painel de sumir no próximo deploy. Com
+# ela ligada, o dropdown de *Configurações › Geral* só lista idioma já
+# instalado, e sem nenhum instalado a única opção é English. Não há caminho
+# pelo painel.
+#
+# Baixar em runtime também não serve: `web/app/languages` vive na imagem, então
+# custaria rede a cada boot para um resultado que o próximo deploy apaga.
+#
+# A versão de cada pacote sai do que está instalado, não de um número escrito à
+# mão — ver `docker/baixar-traducoes.php`.
+ARG ALAB_LOCALE=pt_BR
+RUN php docker/baixar-traducoes.php "${ALAB_LOCALE}" /app/web/app/languages /app/web
+
 RUN composer dump-autoload --optimize --no-dev \
     && chown -R www-data:www-data /app
 
