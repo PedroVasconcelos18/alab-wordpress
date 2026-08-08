@@ -9,6 +9,21 @@ O desenho e as armadilhas estão no playbook, que fica no repo da landing:
 
 ---
 
+## No ar
+
+| | |
+| --- | --- |
+| Projeto Railway | `alab` |
+| Serviço | `blog`, buildando de `PedroVasconcelos18/alab-wordpress@main` |
+| Origem | `blog-production-b190.up.railway.app` |
+| Volume | `blog-volume` em `/data`, 5 GB |
+| Réplicas | 1 (limite do SQLite, ver abaixo) |
+
+O provisionamento rodou em 2026-08-08 e as variáveis `ALAB_PROVISIONAR`,
+`ALAB_ADMIN_*` e `ALAB_TITULO` já foram removidas. Um redeploy depois disso
+confirmou que o banco sobrevive: o WordPress voltou instalado e o bloco de
+provisionamento não rodou de novo.
+
 ## Topologia
 
 ```text
@@ -77,6 +92,12 @@ A ordem importa. O passo 3 é o que não pode ser esquecido.
 4. **Variáveis**: cole `.env.railway` inteiro no *RAW Editor* do painel. Ele já
    vem com as salts de produção geradas, distintas das de desenvolvimento, e com
    `ALAB_PROVISIONAR=1`.
+
+   Pela CLI é uma por comando (`railway variables --set 'K=V' --skip-deploys`),
+   e ela **rejeita valor vazio**: `ALAB_APP_URL=` falha com erro de argumento.
+   Simplesmente não defina — `config/application.php` faz
+   `env('ALAB_APP_URL') ?: ''`, e ausente dá o mesmo resultado que vazio, que é
+   o correto em produção.
 5. **Deploy.** O entrypoint instala o WordPress, ativa tema e plugins e escreve
    os permalinks. O log termina em `alab-blog: provisionado.`
 6. **Remova `ALAB_PROVISIONAR`, `ALAB_ADMIN_SENHA`, `ALAB_ADMIN_EMAIL`,
@@ -115,7 +136,38 @@ curl -sI https://alabventure.com/blog/sitemap_index.xml          # 200
 E clique no menu, não confie só no `curl`: navegação é a coisa que passa verde no
 terminal e falha no navegador.
 
+### O que o cutover mediu
+
+Tudo acima passou. Três coisas que só apareceram fazendo:
+
+- **O `railway.json` aceita chave desconhecida.** As chaves-comentário `_leia`,
+  `_semHealthcheck` e `_numReplicas` foram lidas e ignoradas — o deploy trouxe
+  `configFile: /railway.json` e `builder: DOCKERFILE`. É o oposto do
+  `vercel.json`, que falha na validação (§4.1 do playbook). A regra "comentário
+  vai para a doc" não se transfere de um para o outro.
+- **O conserto de MPM do entrypoint disparou.** Serviço novo, build novo, e
+  ainda assim `mpm_event` e `mpm_prefork` subiram os dois. Sem a verificação na
+  subida, o primeiro deploy teria entrado em loop de restart.
+- **404 em `/favicon.ico` em toda página do blog**, achado no navegador e
+  invisível no `curl`. O WordPress só emite `<link rel="icon">` com Site Icon no
+  banco; sem ele o navegador busca na raiz do domínio, que é a landing.
+  Resolvido no `functions.php`, apontando para o `icon.svg` da landing.
+
 ---
+
+## Pendências
+
+Três, e nenhuma impede o blog de servir:
+
+- **Backup nunca foi baixado.** O item mais importante do §6 do playbook, e o
+  único do checklist ainda em aberto. Comando abaixo.
+- **Apex e `www` discordam.** `alabventure.com` responde 307 para
+  `www.alabventure.com`, mas `WP_HOME` e o `canonical` da landing declaram o
+  apex. Funciona, ao custo de um redirect em todo link interno e de um sinal
+  ambíguo para busca — que é justamente o que a escolha por subdiretório existe
+  para evitar. Ver `alab-lp/README.md`.
+- **Sem tagline.** `blogdescription` está vazio e o Rank Math monta o título
+  como `A.lab -`, com o traço solto. Preencher em *Configurações › Geral*.
 
 ## Backup — é seu
 

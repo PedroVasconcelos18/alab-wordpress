@@ -71,6 +71,30 @@ add_action('wp_enqueue_scripts', function () {
     );
 });
 
+/**
+ * Favicon.
+ *
+ * O WordPress só emite `<link rel="icon">` quando existe um Site Icon no
+ * banco. Sem ele o navegador cai no fallback `/favicon.ico` — que é a RAIZ do
+ * domínio, ou seja a landing, que não tem esse arquivo. Resultado: 404 no
+ * console de toda página do blog, medido no navegador.
+ *
+ * Reaproveita o `icon.svg` da landing pela mesma URL declarada do resto do
+ * tema, em vez de caminho relativo: em desenvolvimento a raiz é o próprio
+ * WordPress e o arquivo não existe lá.
+ */
+add_action('wp_head', function (): void {
+    // Site Icon definido no painel já emite os links dele — não duplicar.
+    if (has_site_icon()) {
+        return;
+    }
+
+    printf(
+        '<link rel="icon" href="%s/icon.svg" type="image/svg+xml">' . "\n",
+        esc_url(alab_url_do_app())
+    );
+}, 1);
+
 add_filter('wp_resource_hints', function (array $urls, string $relation): array {
     if ($relation === 'preconnect') {
         $urls[] = 'https://fonts.googleapis.com';
