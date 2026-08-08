@@ -290,6 +290,24 @@ Patchstack juntos não somam proteção, somam superfície e conflito.
 
 ## O tema
 
+🔴 **Trocar a paleta do pai deixa referências mortas.** O `theme.json` daqui
+substitui a paleta inteira do Twenty Twenty-Five por slugs em português
+(`fundo`, `prata-100`, `acento`…). Mas o CSS que o **pai** emite continua
+pedindo os slugs dele — `var(--wp--preset--color--accent-6)` e companhia — e
+`var()` que não resolve não é erro: a propriedade cai para o valor herdado, em
+silêncio.
+
+Medido na página de post: quatro tokens mortos (`base`, `contrast`,
+`accent-4`, `accent-6`), quebrando a borda dos campos de comentário, o hover e
+o anel de foco dos botões, a cor da data do post, do nome do autor e do link de
+resposta. O sintoma era uma borda branca onde o código pedia
+`rgba(196,205,217,.18)`.
+
+O conserto é um bloco de alias no começo do `styles.css`, apontando os slugs do
+pai para os nossos. **Ao atualizar o Twenty Twenty-Five, refaça a conta**: o
+que o pai referencia pode mudar. O comando é comparar o que aparece em `var()`
+com o que a nossa paleta define, no HTML servido.
+
 `web/app/themes/alab` é filho do Twenty Twenty-Five. Não tem build: paleta,
 tipografia e CSS vivem no `theme.json`, com as cores tiradas do `lp.css` da
 landing. As partes (`parts/header.html`, `parts/footer.html`) usam os tokens
