@@ -1,14 +1,32 @@
 <!-- wp:html -->
 <div class="alab-barra">
   <div class="alab-barra-inner">
-    <a class="alab-marca" href="{{APP_URL}}/">A.lab<span> /tech</span></a>
-    <nav class="alab-links">
-      <a href="{{BLOG_URL}}">Blog</a>
+    <a class="alab-marca" href="{{APP_URL}}/" aria-label="A.lab, página inicial">
+      <svg class="alab-simbolo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="alabSimbolo" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#F1F4F9"></stop>
+            <stop offset="55%" stop-color="#9FA9BC"></stop>
+            <stop offset="100%" stop-color="#C4CDD9"></stop>
+          </linearGradient>
+        </defs>
+        <path d="M24 4 L44 44 L4 44 Z" stroke="url(#alabSimbolo)" stroke-width="1.8" fill="none" stroke-linejoin="round"></path>
+        <path d="M24 18 c-2 0 -4 2 -4 5 v6 l-3 3 v3 h14 v-3 l-3 -3 v-6 c0 -3 -2 -5 -4 -5 z" fill="url(#alabSimbolo)"></path>
+        <circle cx="24" cy="22" r="1.6" fill="#0A0F1C"></circle>
+      </svg>
+      <span class="alab-marca-texto">A.lab<span> /tech</span></span>
+    </a>
+    <nav class="alab-links" aria-label="Navegação principal">
       <a href="{{APP_URL}}/#metodologia">Metodologia</a>
+      <a href="{{APP_URL}}/#modalidades">Modalidades</a>
       <a href="{{APP_URL}}/#portfolio">Portfólio</a>
       <a href="{{APP_URL}}/#diferenciais">Por que A.lab</a>
-      <a class="alab-cta" href="{{APP_URL}}/#contato">Falar com a A.lab</a>
+      <a href="{{BLOG_URL}}">Conteúdo</a>
+      <a href="{{APP_URL}}/#contato">Contato</a>
     </nav>
+    <div class="alab-barra-cta">
+      <a class="alab-cta" href="{{APP_URL}}/#contato">Falar com a A.lab<svg class="alab-seta" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    </div>
   </div>
 </div>
 <!-- /wp:html -->
