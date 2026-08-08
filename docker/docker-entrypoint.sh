@@ -145,6 +145,52 @@ if [ -n "${ALAB_LOCALE:-}" ] && [ -f "$BANCO" ]; then
     else
         echo "alab-blog: idioma ja definido (${atual})"
     fi
+
+    # ── Formato de data e hora ───────────────────────────────────────────────
+    #
+    # Trocar o idioma NAO conserta isto, e o resultado meio-traduzido e pior
+    # que o ingles inteiro: "agosto 8, 2026" — mes em portugues, gramatica em
+    # ingles.
+    #
+    # A causa: o instalador grava `__('F j, Y')` e `__('g:i a')` como default,
+    # traduzidos pelo locale ATIVO NA HORA DA INSTALACAO. Este site foi
+    # instalado em ingles, entao ficaram os formatos ingleses gravados no
+    # banco, e nenhuma troca de idioma depois mexe neles.
+    #
+    # Perguntar ao proprio WordPress qual e o formato do locale e exatamente o
+    # que o instalador faria — nao ha nada especifico de pt_BR escrito aqui.
+    #
+    # So troca o que ainda for o default ingles: formato ajustado no painel e
+    # decisao de quem ajustou.
+    for par in "date_format:F j, Y" "time_format:g:i a"; do
+        chave="${par%%:*}"
+        padrao="${par#*:}"
+
+        if [ "$($WP option get "$chave" 2>/dev/null || true)" = "$padrao" ]; then
+            traduzido=$($WP eval "echo __('${padrao}');" 2>/dev/null || true)
+
+            if [ -n "$traduzido" ] && [ "$traduzido" != "$padrao" ]; then
+                echo "alab-blog: ${chave} -> ${traduzido}"
+                $WP option update "$chave" "$traduzido" || true
+            fi
+        fi
+    done
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fuso horario.
+#
+# Decisao declarada, nao derivada do idioma: pt_BR nao implica Sao Paulo, e o
+# default do WordPress e UTC. Sem isto, a hora de publicacao de todo post sai
+# tres horas adiantada.
+#
+# Mesma regra do resto: so age quando esta vazio.
+# ─────────────────────────────────────────────────────────────────────────────
+if [ -n "${ALAB_TIMEZONE:-}" ] && [ -f "$BANCO" ]; then
+    if [ -z "$($WP option get timezone_string 2>/dev/null || true)" ]; then
+        echo "alab-blog: fuso vazio, definindo ${ALAB_TIMEZONE}"
+        $WP option update timezone_string "${ALAB_TIMEZONE}" || true
+    fi
 fi
 
 exec "$@"
