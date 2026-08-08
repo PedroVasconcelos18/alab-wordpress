@@ -157,17 +157,58 @@ Tudo acima passou. Três coisas que só apareceram fazendo:
 
 ## Pendências
 
-Três, e nenhuma impede o blog de servir:
+Nenhuma impede o blog de servir. As duas primeiras são as que importam.
 
-- **Backup nunca foi baixado.** O item mais importante do §6 do playbook, e o
-  único do checklist ainda em aberto. Comando abaixo.
-- **Apex e `www` discordam.** `alabventure.com` responde 307 para
-  `www.alabventure.com`, mas `WP_HOME` e o `canonical` da landing declaram o
-  apex. Funciona, ao custo de um redirect em todo link interno e de um sinal
-  ambíguo para busca — que é justamente o que a escolha por subdiretório existe
-  para evitar. Ver `alab-lp/README.md`.
-- **Sem tagline.** `blogdescription` está vazio e o Rank Math monta o título
-  como `A.lab -`, com o traço solto. Preencher em *Configurações › Geral*.
+### 🔴 O push no GitHub não dispara deploy
+
+O Railway builda deste repo, mas **não existe gatilho**: `git push` não sobe
+nada. O GitHub App do Railway não enxerga `alab-wordpress` — a CLI só conseguiu
+conectar a origem passando `--branch` explícito, e recusa com `Unauthorized`
+sem ele, que é justamente o sintoma de repo fora do alcance do App.
+
+Enquanto não for resolvido, todo deploy é manual:
+
+```bash
+railway service redeploy --service blog --from-source --yes
+```
+
+O conserto é no GitHub, não aqui: *Settings › Applications › Railway ›
+Repository access*, adicionar `alab-wordpress`. Depois disso o Railway cria o
+trigger e o push volta a bastar.
+
+### 🔴 Backup nunca foi baixado
+
+O item mais importante do §6 do playbook, e o único do checklist ainda em
+aberto. Comando na seção abaixo — rode antes de publicar qualquer conteúdo.
+
+### O blog está em inglês
+
+`<html lang="en-US">` e `og:locale=en_US`. Não há `WPLANG` no `.env.railway`
+nem no `config/application.php`, e não há `web/app/languages` — o pacote de
+idioma nunca foi instalado. Trocar pelo painel esbarra em `DISALLOW_FILE_MODS`,
+e mesmo instalando, o pacote cairia na imagem e sumiria no próximo deploy.
+
+O lugar certo é o provisionamento: `wp language core install pt_BR --activate`
+no `docker-entrypoint.sh`, junto com os plugins.
+
+### Sem `robots.txt` no domínio
+
+`alabventure.com/robots.txt` responde 404, então o `sitemap_index.xml` do Rank
+Math não é anunciado a ninguém. O arquivo pertence à **raiz do domínio**, não ao
+`/blog`: `alab-lp/public/robots.txt`, com a linha
+`Sitemap: https://alabventure.com/blog/sitemap_index.xml`.
+
+### Sem tagline
+
+`blogdescription` está vazio e o Rank Math monta o título como `A.lab -`, com o
+traço solto. Preencher em *Configurações › Geral*.
+
+### Apex e `www` discordam
+
+`alabventure.com` responde 307 para `www.alabventure.com`, mas `WP_HOME` e o
+`canonical` da landing declaram o apex. Funciona, ao custo de um redirect em
+todo link interno e de um sinal ambíguo para busca — que é justamente o que a
+escolha por subdiretório existe para evitar. Ver `alab-lp/README.md`.
 
 ## Backup — é seu
 
