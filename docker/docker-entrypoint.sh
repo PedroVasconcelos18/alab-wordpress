@@ -175,6 +175,30 @@ if [ -n "${ALAB_LOCALE:-}" ] && [ -f "$BANCO" ]; then
             fi
         fi
     done
+
+    # ── Categoria padrao ─────────────────────────────────────────────────────
+    #
+    # Mesma familia dos formatos de data: o instalador cria o termo com
+    # `__('Uncategorized')`, traduzido pelo locale da instalacao. Virou texto no
+    # banco, entao trocar o idioma nao mexe nele — e ele aparece embaixo do
+    # titulo de TODO post ("Escrito por pedro em Uncategorized").
+    #
+    # So renomeia se ainda estiver exatamente como o instalador ingles deixou.
+    # O slug NAO muda: ele esta em URL de arquivo, e renomear quebraria link.
+    padrao_id=$($WP option get default_category 2>/dev/null || true)
+
+    if [ -n "$padrao_id" ]; then
+        nome=$($WP term get category "$padrao_id" --field=name 2>/dev/null || true)
+
+        if [ "$nome" = "Uncategorized" ]; then
+            traduzido=$($WP eval "echo __('Uncategorized');" 2>/dev/null || true)
+
+            if [ -n "$traduzido" ] && [ "$traduzido" != "Uncategorized" ]; then
+                echo "alab-blog: categoria padrao -> ${traduzido}"
+                $WP term update category "$padrao_id" --name="$traduzido" || true
+            fi
+        fi
+    fi
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
