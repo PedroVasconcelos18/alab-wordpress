@@ -223,25 +223,46 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
 }
 
 /**
- * Host da requisição.
+ * A requisição que a origem recebe NÃO é a que o cliente fez.
  *
- * 🔴 Medido em produção: no rewrite, a Vercel envia o `Host` da ORIGEM
- * (`blog-production-….up.railway.app`), não o do domínio público. Quase tudo no
- * WordPress passa por `WP_HOME` e sai certo — o HTML servido não tem uma única
- * ocorrência do host do Railway.
+ * Medido em produção, nas duas pontas:
  *
- * A exceção é `auth_redirect()`, que monta o `redirect_to` concatenando
- * `$_SERVER['HTTP_HOST']` cru. Quem abre `/blog/wp/wp-admin/` deslogado é
- * mandado para o login do domínio público — correto — e de lá jogado no host do
- * Railway, onde o cookie de sessão não vale, e cai no login de novo.
+ *   cliente  →  GET /blog/wp/wp-admin/   Host: alabventure.com
+ *   origem   ←  GET /wp/wp-admin/        Host: blog-production-….up.railway.app
  *
- * Reescrever o host aqui alinha o caso cru com o resto. É a mesma política do
- * `WP_HOME`: a origem nunca se apresenta como origem.
+ * A Vercel troca o `Host` pelo da origem e **remove o prefixo `/blog`** antes
+ * de repassar. Quase tudo no WordPress passa por `WP_HOME` e sai certo — o HTML
+ * servido não tem uma única ocorrência do host do Railway.
+ *
+ * 🔴 O que não passa é o código que lê `$_SERVER` cru. `auth_redirect()` monta
+ * o `redirect_to` com `HTTP_HOST . REQUEST_URI`, e vários formulários do
+ * wp-admin usam `REQUEST_URI` como action. Com os dois valores errados, quem
+ * abre `/blog/wp/wp-admin/` deslogado faz login no domínio certo e é jogado
+ * numa URL que não existe.
+ *
+ * Corrigir só o host troca um defeito por outro: o destino vira
+ * `alabventure.com/wp/wp-admin/`, sem o `/blog`. Os dois andam juntos.
+ *
+ * Reconstruir a requisição pública devolve o WordPress ao caso normal de
+ * instalação em subdiretório, que `WP::parse_request()` trata sozinho: ele tira
+ * o caminho de `home_url()` do começo de `REQUEST_URI` antes de rotear.
  */
-$host_publico = parse_url((string) env('WP_HOME'), PHP_URL_HOST);
+$url_publica = (string) env('WP_HOME');
+$host_publico = parse_url($url_publica, PHP_URL_HOST);
+$prefixo_publico = rtrim((string) parse_url($url_publica, PHP_URL_PATH), '/');
 
 if ($host_publico) {
     $_SERVER['HTTP_HOST'] = $host_publico;
+}
+
+// Idempotente: em desenvolvimento não há prefixo, e um proxy que preserve o
+// caminho não deve levar o prefixo duas vezes.
+if ($prefixo_publico !== '' && isset($_SERVER['REQUEST_URI'])) {
+    $uri = $_SERVER['REQUEST_URI'];
+
+    if ($uri !== $prefixo_publico && !str_starts_with($uri, $prefixo_publico . '/')) {
+        $_SERVER['REQUEST_URI'] = $prefixo_publico . $uri;
+    }
 }
 
 $env_config = __DIR__ . '/environments/' . WP_ENV . '.php';
