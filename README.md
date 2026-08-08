@@ -38,9 +38,28 @@ mesmo quando a requisição chega pelo host do Railway.
 > O host do Railway continua **acessível e servindo 200** para quem souber o
 > endereço; medido aqui e confirmado na origem do clama, que está em produção. O
 > que impede conteúdo duplicado é o canonical apontando para o destino, não um
-> bloqueio. Se um dia isso incomodar, a saída **não** é `X-Robots-Tag` por host:
-> não está confirmado qual `Host` a Vercel envia no rewrite, e errar aí
-> desindexaria o blog inteiro.
+> bloqueio.
+>
+> Se um dia isso incomodar, a saída **não** é `X-Robots-Tag` por host — e agora
+> está medido por quê, não suposto. A Vercel manda no rewrite o `Host` da
+> **origem**, o mesmo que uma visita direta manda. Os dois casos chegam
+> idênticos: não há host para distinguir, e uma regra por host ou não pega nada
+> ou desindexa o blog inteiro.
+
+### A requisição que chega não é a que o cliente fez
+
+Medido nas duas pontas, e é o que o `config/application.php` reconstrói:
+
+```text
+cliente  →  GET /blog/wp/wp-admin/   Host: alabventure.com
+origem   ←  GET /wp/wp-admin/        Host: blog-production-….up.railway.app
+```
+
+A Vercel troca o host **e remove o prefixo `/blog`**. Tudo que passa por
+`WP_HOME` sai certo sozinho; o que lê `$_SERVER` cru — `auth_redirect()`, e os
+formulários do wp-admin que usam `REQUEST_URI` como action — sai errado. Os dois
+valores precisam ser corrigidos juntos: consertar só o host troca o host errado
+por um caminho errado.
 
 | | |
 | --- | --- |
@@ -152,6 +171,10 @@ Tudo acima passou. Três coisas que só apareceram fazendo:
   invisível no `curl`. O WordPress só emite `<link rel="icon">` com Site Icon no
   banco; sem ele o navegador busca na raiz do domínio, que é a landing.
   Resolvido no `functions.php`, apontando para o `icon.svg` da landing.
+- **O host do Railway vazava no `redirect_to` do wp-admin** — o único lugar em
+  todo o HTML servido. Foi o fio que levou à seção acima: a origem recebe host e
+  caminho diferentes dos que o cliente mandou. Resolvido no
+  `config/application.php`.
 
 ---
 
