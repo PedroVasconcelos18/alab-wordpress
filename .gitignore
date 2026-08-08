@@ -1,0 +1,34 @@
+# Application
+web/app/plugins/*
+!web/app/plugins/.gitkeep
+web/app/mu-plugins/*/
+!web/app/mu-plugins/.gitkeep
+web/app/themes/twentytwentyfive/
+web/app/upgrade
+web/app/uploads/*
+!web/app/uploads/.gitkeep
+web/app/cache/*
+
+# WordPress
+web/wp
+web/.htaccess
+
+# Logs
+*.log
+
+# Dotenv
+.env
+.env.*
+!.env.example
+
+# Composer
+/vendor
+auth.json
+
+# WP-CLI
+wp-cli.local.yml
+
+# Banco SQLite local. O arquivo É o banco inteiro — versionar seria commitar
+# conteúdo, usuários e senhas de desenvolvimento a cada post criado.
+# Em produção ele vive no volume do Railway, em /data/database/.
+web/app/database/

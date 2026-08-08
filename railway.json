@@ -1,0 +1,20 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+
+  "_leia": "O volume NÃO é configurado aqui — é no painel do Railway, e precisa ser montado em /data. Sem ele o container aborta de propósito (docker/docker-entrypoint.sh), em vez de servir um site vazio a cada deploy.",
+
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3,
+
+    "_semHealthcheck": "Não há healthcheckPath, e é consequência do desenho, não descuido. O healthcheck do Railway bate em http://<host-interno>:$PORT/ — com a PORTA explícita no Host — e o `redirect_canonical` do WordPress responde 301 para a mesma URL sem a porta. O healthcheck trata 3xx como falha e derruba o deploy, em loop. Medido nesta imagem: `http://localhost:8081/` devolve 301 para `http://localhost/`, e a MESMA requisição com Host sem porta devolve 200 — em qualquer host, inclusive o do Railway. (O playbook atribui isso ao WP_HOME público respondendo 302 para o caminho público; não é o que acontece: a origem serve 200 e só declara o destino no `<link rel=canonical>`. A conclusão de não usar healthcheck continua valendo, a causa é a porta.) Para conferir saúde use `railway logs` (o Apache registra AH00163 ao subir) ou teste pelo domínio público depois do cutover.",
+
+    "_numReplicas": "Mantém 1. Com SQLite o banco é um arquivo em disco local — duas réplicas gravando no mesmo volume corrompem o banco. É o limite real desta escolha, e escalar exige trocar para MariaDB antes.",
+    "numReplicas": 1
+  }
+}

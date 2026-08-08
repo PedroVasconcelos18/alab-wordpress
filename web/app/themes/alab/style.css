@@ -1,0 +1,23 @@
+/*
+Theme Name:   A.lab
+Theme URI:    https://alabventure.com/blog
+Template:     twentytwentyfive
+Author:       A.lab
+Description:  Tema filho do Twenty Twenty-Five com a identidade da A.lab — paleta dark/blueprint, Bricolage Grotesque e JetBrains Mono, e cabeçalho/rodapé que voltam para a landing. Sem build: todo o estilo vem do theme.json.
+Version:      1.0.0
+Requires at least: 6.7
+Requires PHP: 8.3
+License:      Proprietary
+Text Domain:  alab
+*/
+
+/*
+ * Este arquivo existe porque o WordPress exige um style.css com cabeçalho para
+ * reconhecer o tema — e `Template:` é o que faz dele filho do Twenty
+ * Twenty-Five.
+ *
+ * Não escreva estilo aqui. O CSS de verdade está em `theme.json`
+ * (`styles.css`), que é enfileirado pelo core junto com as global styles.
+ * Estilo escrito aqui só valeria se alguém enfileirasse este arquivo, e
+ * ninguém enfileira.
+ */

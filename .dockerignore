@@ -1,0 +1,26 @@
+# 🔴 O .env tem as salts. Ele NUNCA entra na imagem — no Railway as variáveis
+# vêm do painel, e uma cópia dentro do container seria a mesma credencial em
+# dois lugares, com um deles versionado por engano mais cedo ou mais tarde.
+.env
+.env.*
+
+# Estado local: banco SQLite e uploads da máquina de desenvolvimento. No
+# Railway isso vive no volume, e subir junto sobrescreveria produção.
+web/app/database
+web/app/uploads
+
+# Tudo que é instalado pelo Composer DENTRO da imagem, antes do `COPY . .`.
+# Sem estas linhas, um `docker build` local copia a cópia da máquina por cima
+# da que veio do lock — e a imagem passa a rodar a versão de quem buildou, não
+# a versão travada. No build do Railway não aparece (é gitignored), o que
+# tornaria a diferença invisível justamente onde ela importa.
+vendor
+web/wp
+web/app/plugins
+web/app/themes/twentytwentyfive
+
+**/node_modules
+
+.git
+.gitignore
+*.md
