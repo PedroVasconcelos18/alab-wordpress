@@ -222,6 +222,28 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
     $_SERVER['HTTPS'] = 'on';
 }
 
+/**
+ * Host da requisição.
+ *
+ * 🔴 Medido em produção: no rewrite, a Vercel envia o `Host` da ORIGEM
+ * (`blog-production-….up.railway.app`), não o do domínio público. Quase tudo no
+ * WordPress passa por `WP_HOME` e sai certo — o HTML servido não tem uma única
+ * ocorrência do host do Railway.
+ *
+ * A exceção é `auth_redirect()`, que monta o `redirect_to` concatenando
+ * `$_SERVER['HTTP_HOST']` cru. Quem abre `/blog/wp/wp-admin/` deslogado é
+ * mandado para o login do domínio público — correto — e de lá jogado no host do
+ * Railway, onde o cookie de sessão não vale, e cai no login de novo.
+ *
+ * Reescrever o host aqui alinha o caso cru com o resto. É a mesma política do
+ * `WP_HOME`: a origem nunca se apresenta como origem.
+ */
+$host_publico = parse_url((string) env('WP_HOME'), PHP_URL_HOST);
+
+if ($host_publico) {
+    $_SERVER['HTTP_HOST'] = $host_publico;
+}
+
 $env_config = __DIR__ . '/environments/' . WP_ENV . '.php';
 
 if (file_exists($env_config)) {
