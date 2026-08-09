@@ -178,6 +178,67 @@ Tudo acima passou. Três coisas que só apareceram fazendo:
 
 ---
 
+## Testar
+
+Duas coisas diferentes, e confundir as duas é como se chega em produção sem
+saber: **conferir o que já está no ar** e **conferir uma mudança antes de subir**.
+
+### O que já está no ar
+
+```bash
+bin/verificar-blog.sh                          # produção da A.lab
+bin/verificar-blog.sh https://clama.me/blog    # o outro blog
+```
+
+**Só GET e HEAD** — nada de POST, nada de formulário. É por isso que pode rodar
+contra produção a qualquer hora, e o melhor momento é logo depois de um deploy.
+Sai 0 se tudo passou.
+
+Cada teste existe porque a coisa quebrou; nenhum é preventivo genérico. Roteamento
+com e sem barra (§4.3), quem responde é o WordPress e não um arquivo estático
+(§4.4), o namespace do Rank Math (§4.9), vazamento do host da origem, o
+`redirect_to` do wp-admin, o locale, e os tokens de cor que o tema pai
+referencia. Se um deles começar a parecer bobo, confira o histórico antes de
+apagar.
+
+Duas coisas que ele **não** testa, e que ninguém deveria fingir que testa:
+
+- **Navegação por clique.** §4.5: o `curl` fica verde enquanto o botão não sai
+  do lugar. Abra o menu e clique.
+- **Layout.** Largura, alinhamento, contraste — isso é navegador.
+
+Uma lição do próprio script: a primeira versão do teste de `redirect_to`
+procurava `%2Fblog` na URL crua e **passava contra o clama**, onde o destino
+era `…%2F%2Fblog-production-1356.up.railway.app%2F…` — o host da origem começa
+com "blog-", então a agulha casava dentro do próprio bug. Teste que casa
+substring em URL codificada precisa decodificar antes de julgar. Rodar contra um
+segundo site foi o que revelou isso.
+
+### Uma mudança, antes de subir
+
+```bash
+bin/subir-local.sh            # builda e sobe em http://localhost:8080
+bin/verificar-blog.sh http://localhost:8080
+bin/subir-local.sh --limpo    # apaga o volume: volta ao primeiro boot
+```
+
+Container, não `php -S`. Os bugs mais caros desta imagem não existem fora do
+container: os dois MPMs do Apache, o Composer desabilitando plugins como root, o
+volume ausente, o pacote de idioma baixado no build. O `php -S` testa o tema; o
+container testa o deploy.
+
+O volume é **nomeado**, e é isso que faz o teste de persistência valer: derrubar
+o container e subir sem `--limpo` tem que preservar o banco, igual a um redeploy
+no Railway.
+
+### O que ainda não existe
+
+**Não há staging.** Todo deploy vai direto para produção — inclusive os desta
+sessão. O `config/environments/staging.php` já está escrito e já força
+`DISALLOW_INDEXING`; falta o ambiente no Railway apontando para o mesmo repo,
+com volume próprio e `WP_ENV=staging`. Enquanto não existir, o container local é
+o único portão antes do público.
+
 ## Pendências
 
 Nenhuma impede o blog de servir. As duas primeiras são as que importam.
