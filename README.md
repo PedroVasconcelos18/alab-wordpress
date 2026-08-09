@@ -217,10 +217,14 @@ segundo site foi o que revelou isso.
 ### Uma mudança, antes de subir
 
 ```bash
-bin/subir-local.sh            # builda e sobe em http://localhost:8080
-bin/verificar-blog.sh http://localhost:8080
-bin/subir-local.sh --limpo    # apaga o volume: volta ao primeiro boot
+bin/subir-local.sh                                     # sobe em :8080
+bin/verificar-blog.sh http://localhost:8080 pt-BR noindex
+bin/subir-local.sh --limpo                             # apaga o volume: volta ao primeiro boot
 ```
+
+O terceiro argumento não é detalhe: fora de produção a expectativa **inverte**.
+Um ambiente que passa no teste de "indexável" está reprovado, porque um clone
+indexado compete com o site real pelos mesmos textos.
 
 Container, não `php -S`. Os bugs mais caros desta imagem não existem fora do
 container: os dois MPMs do Apache, o Composer desabilitando plugins como root, o
@@ -230,6 +234,12 @@ container testa o deploy.
 O volume é **nomeado**, e é isso que faz o teste de persistência valer: derrubar
 o container e subir sem `--limpo` tem que preservar o banco, igual a um redeploy
 no Railway.
+
+Na primeira hora de vida, esse caminho já pagou por si: achou dois bugs que
+estavam **em produção** e que nenhum teste contra produção acharia. A porta
+sumindo do `HTTP_HOST` (produção não tem porta na URL) e o
+`bedrock-disallow-indexing` que nunca carregou (produção não liga a constante,
+então o certo e o quebrado são indistinguíveis lá).
 
 ### O que ainda não existe
 
