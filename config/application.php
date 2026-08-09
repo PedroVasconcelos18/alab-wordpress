@@ -249,10 +249,19 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
  */
 $url_publica = (string) env('WP_HOME');
 $host_publico = parse_url($url_publica, PHP_URL_HOST);
+$porta_publica = parse_url($url_publica, PHP_URL_PORT);
 $prefixo_publico = rtrim((string) parse_url($url_publica, PHP_URL_PATH), '/');
 
+// 🔴 A PORTA faz parte do host, e esquecê-la é um loop de redirect.
+//
+// `PHP_URL_HOST` devolve `localhost` para `http://localhost:8080`. Reescrever
+// HTTP_HOST sem a porta faz o `redirect_canonical` mandar 301 para
+// `http://localhost/` — o site inteiro em loop. Produção não tem porta na URL
+// e não mostra isso; o container local mostrou na primeira subida.
 if ($host_publico) {
-    $_SERVER['HTTP_HOST'] = $host_publico;
+    $_SERVER['HTTP_HOST'] = $porta_publica
+        ? "{$host_publico}:{$porta_publica}"
+        : $host_publico;
 }
 
 // Idempotente: em desenvolvimento não há prefixo, e um proxy que preserve o

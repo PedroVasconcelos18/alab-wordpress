@@ -53,7 +53,7 @@ docker run -d --name alab-blog \
     -e ALAB_TITULO='A.lab (local)' \
     -e ALAB_ADMIN_USER=pedro \
     -e ALAB_ADMIN_SENHA=local-so-para-desenvolvimento \
-    -e ALAB_ADMIN_EMAIL=dev@localhost \
+    -e ALAB_ADMIN_EMAIL=dev@example.com \
     -e AUTH_KEY=dev-auth-key \
     -e SECURE_AUTH_KEY=dev-secure-auth-key \
     -e LOGGED_IN_KEY=dev-logged-in-key \
@@ -72,7 +72,7 @@ for _ in $(seq 1 60); do
         echo "  http://localhost:${PORTA}/            o blog"
         echo "  http://localhost:${PORTA}/wp/wp-admin  painel (pedro / local-so-para-desenvolvimento)"
         echo
-        echo "  bin/verificar-blog.sh http://localhost:${PORTA}"
+        echo "  bin/verificar-blog.sh http://localhost:${PORTA} pt-BR noindex"
         echo "  docker logs -f alab-blog"
         echo
         exit 0

@@ -24,6 +24,10 @@ set -uo pipefail
 
 BASE="${1:-https://www.alabventure.com/blog}"
 LOCALE="${2:-pt-BR}"
+# `index` ou `noindex`. Produção indexa; qualquer outro ambiente NÃO deve, e a
+# expectativa inverte junto — um staging que passa no teste de "indexável" está
+# reprovado, não aprovado.
+INDEXACAO="${3:-index}"
 
 BASE="${BASE%/}"
 # O prefixo público é o que o proxy remove antes de chegar na origem. É a peça
@@ -145,19 +149,27 @@ echo "SEO"
 # a única pista de que o Rank Math não subiu.
 conter "Rank Math ativo (§4.9)" "rankmath" "namespaces do /wp-json" "$(corpo "$BASE/wp-json")"
 
+# A expectativa depende do ambiente, e é por isso que é parâmetro. Um staging
+# indexável compete com o site real pelos mesmos textos — o teste tem que
+# reprovar isso, não elogiar.
+#
+# Foi assim que se descobriu que o `bedrock-disallow-indexing` nunca carregou:
+# rodando esta bateria contra o container local, com WP_ENV=development.
 robots=$(printf '%s' "$html" | grep -io '<meta name="robots" content="[^"]*"' | head -1)
-conter "indexável (WP_ENV=production)" "index" "$robots" "$robots"
 
-# Mesma armadilha do teste de token: "não contém noindex" é verdade numa
-# página sem meta robots nenhuma. Exige a tag antes de julgar o conteúdo dela.
 total=$((total + 1))
 if [ -z "$robots" ]; then
-    vermelho "sem noindex em produção" "uma meta robots para julgar" "nenhuma meta robots na página"
+    vermelho "indexação esperada: $INDEXACAO" "uma meta robots para julgar" "nenhuma meta robots na página"
     falhas=$((falhas + 1))
+elif [ "$INDEXACAO" = "noindex" ]; then
+    case "$robots" in
+        *noindex*) verde "noindex fora de produção" ;;
+        *) vermelho "noindex fora de produção" "conter noindex" "$robots"; falhas=$((falhas + 1)) ;;
+    esac
 else
     case "$robots" in
-        *noindex*) vermelho "sem noindex em produção" "sem noindex" "$robots"; falhas=$((falhas + 1)) ;;
-        *) verde "sem noindex em produção" ;;
+        *noindex*) vermelho "indexável em produção" "sem noindex" "$robots"; falhas=$((falhas + 1)) ;;
+        *) verde "indexável em produção" ;;
     esac
 fi
 
