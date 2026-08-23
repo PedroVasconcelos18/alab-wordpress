@@ -217,4 +217,65 @@ if [ -n "${ALAB_TIMEZONE:-}" ] && [ -f "$BANCO" ]; then
     fi
 fi
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Contas de leitor: cadastro aberto, comentario exigindo login.
+#
+# 🔴 Aqui a regra "so age quando esta vazio" NAO serve, e por um motivo que vale
+# entender: estes valores sao BOOLEANOS, e `0` e um valor legitimo. "Vazio"
+# nunca acontece, e "diferente do que eu quero" e indistinguivel de "o
+# administrador desligou de proposito no painel". Aplicar todo boot passaria por
+# cima da decisao dele a cada deploy.
+#
+# Entao: marcador. Aplica UMA vez, grava que aplicou, e nunca mais toca. Mudar
+# a configuracao depois e trabalho do painel, e o deploy respeita.
+#
+# ⚠️ `comment_registration=1` sem cadastro funcionando TRANCA os comentarios: o
+# leitor precisa de conta e nao consegue criar uma. Por isso os dois sao
+# ligados juntos, e por isso o aviso de SMTP abaixo importa — sem e-mail o
+# cadastro comeca mas nao termina.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# 🔴 E o gatilho e a CHAVE DE SMTP, nao o deploy.
+#
+# Ligar `comment_registration` sem cadastro funcionando e uma REGRESSAO: hoje
+# qualquer um comenta, e passaria a ser preciso ter conta que ninguem consegue
+# criar. O blog ficaria pior do que antes da funcionalidade.
+#
+# Entao isto so roda quando ALAB_SMTP_SENHA existe. Preencheu a variavel, o
+# proximo deploy liga tudo sozinho; nao preencheu, nada muda para o leitor.
+if [ -f "$BANCO" ] && [ -n "${ALAB_SMTP_SENHA:-}" ]; then
+    if [ "$($WP option get alab_contas_configuradas 2>/dev/null || true)" != "1" ]; then
+        echo "alab-blog: configurando contas de leitor (uma vez so)"
+
+        # Qualquer um cria conta, com o papel mais fraco que existe: assinante
+        # nao escreve post, nao ve rascunho, nao mexe em nada.
+        $WP option update users_can_register 1 || true
+        $WP option update default_role subscriber || true
+
+        # Comentario exige conta. E o que amarra comentario e curtida a uma
+        # identidade, que foi o pedido.
+        $WP option update comment_registration 1 || true
+
+        # O primeiro comentario de cada autor fica retido. E o filtro de spam
+        # mais barato que existe e nao depende de servico de terceiro.
+        $WP option update comment_previously_approved 1 || true
+
+        # Avisa por e-mail o que precisa de moderacao.
+        $WP option update comments_notify 1 || true
+        $WP option update moderation_notify 1 || true
+
+        $WP option update alab_contas_configuradas 1 || true
+        echo "alab-blog: contas configuradas — cadastro aberto, comentario exige login"
+    fi
+
+fi
+
+# Diz por que nao ligou, todo boot. Silencio aqui seria a pior saida: a
+# funcionalidade esta no codigo, nao esta no ar, e nada explicaria a diferenca.
+if [ -f "$BANCO" ] && [ -z "${ALAB_SMTP_SENHA:-}" ]; then
+    echo "alab-blog: contas de leitor NAO ligadas — falta ALAB_SMTP_SENHA." >&2
+    echo "           Comentario segue anonimo e o cadastro segue fechado, de proposito:" >&2
+    echo "           sem e-mail o leitor se cadastraria e nunca receberia a senha." >&2
+fi
+
 exec "$@"
