@@ -50,7 +50,7 @@ docker run -d --name alab-blog \
     -e ALAB_LOCALE=pt_BR \
     -e ALAB_TIMEZONE=America/Sao_Paulo \
     -e ALAB_PROVISIONAR=1 \
-    -e ALAB_SMTP_SENHA=re_falsa_so_para_ligar_as_contas_no_local \
+    -e ALAB_RESEND_CHAVE=re_falsa_so_para_ligar_as_contas_no_local \
     -e ALAB_EMAIL_REMETENTE=nao-responda@example.com \
     -e ALAB_TITULO='A.lab (local)' \
     -e ALAB_ADMIN_USER=pedro \

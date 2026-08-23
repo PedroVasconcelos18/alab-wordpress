@@ -207,30 +207,22 @@ Config::define('RANK_MATH_REGISTRATION_SKIP', true);
 Config::define('DISALLOW_INDEXING', false);
 
 /**
- * E-mail — SMTP do Resend.
+ * E-mail — API do Resend, sobre HTTPS.
  *
- * 🔴 A imagem NÃO tem transporte de e-mail. Não há MTA instalado, e o
- * `sendmail_path` padrão do PHP aponta para um binário que não existe no
- * container. Sem estas variáveis, `wp_mail()` devolve `false` em silêncio: o
- * leitor se cadastra e nunca recebe a senha, e você nunca recebe o aviso de
- * comentário novo. É a diferença entre ter contas e ter contas que funcionam.
+ * 🔴 Não é SMTP, e a troca foi medida em produção: o Railway não deixa sair
+ * conexão SMTP. Com `smtp.resend.com:587` o envio PENDURAVA a requisição por
+ * 90s sem devolver nada — pior que não ter e-mail, porque cadastro e
+ * recuperação de senha ficariam travados até o `max_execution_time`. A mesma
+ * porta conecta em 0,22s de fora do container. HTTPS na 443 nenhum PaaS
+ * bloqueia. Quem faz o trabalho é `web/app/mu-plugins/alab-email.php`.
  *
- * Por que constante e não plugin de SMTP: `wp-mail-smtp` e parentes guardam a
- * configuração no BANCO, por um assistente no painel — exatamente o que o
- * `DISALLOW_FILE_MODS` e o resto deste arquivo existem para evitar. Credencial
- * é ambiente. Quem faz o trabalho é `web/app/mu-plugins/alab-email.php`, em
- * vinte linhas, sem estado e sem tela.
+ * Credencial é ambiente, não estado de banco preenchido por assistente de
+ * plugin — mesma política do resto deste arquivo.
  *
- * ⚠️ O domínio do remetente precisa estar VERIFICADO no Resend. Mandar de um
- * domínio não verificado é recusado no envio, não na configuração — o sintoma é
- * o mesmo silêncio de não ter SMTP nenhum.
+ * ⚠️ O domínio do remetente precisa estar verificado no Resend. Recusa
+ * acontece no envio, e agora aparece no log com o motivo que a API devolveu.
  */
-Config::define('ALAB_SMTP_HOST', env('ALAB_SMTP_HOST') ?: 'smtp.resend.com');
-Config::define('ALAB_SMTP_PORTA', (int) (env('ALAB_SMTP_PORTA') ?: 587));
-Config::define('ALAB_SMTP_SEGURANCA', env('ALAB_SMTP_SEGURANCA') ?: 'tls');
-// No Resend o usuário é literalmente "resend"; a senha é a API key.
-Config::define('ALAB_SMTP_USUARIO', env('ALAB_SMTP_USUARIO') ?: 'resend');
-Config::define('ALAB_SMTP_SENHA', env('ALAB_SMTP_SENHA') ?: '');
+Config::define('ALAB_RESEND_CHAVE', env('ALAB_RESEND_CHAVE') ?: '');
 Config::define('ALAB_EMAIL_REMETENTE', env('ALAB_EMAIL_REMETENTE') ?: '');
 Config::define('ALAB_EMAIL_REMETENTE_NOME', env('ALAB_EMAIL_REMETENTE_NOME') ?: 'A.lab');
 

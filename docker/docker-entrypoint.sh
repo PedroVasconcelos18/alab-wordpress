@@ -241,9 +241,9 @@ fi
 # qualquer um comenta, e passaria a ser preciso ter conta que ninguem consegue
 # criar. O blog ficaria pior do que antes da funcionalidade.
 #
-# Entao isto so roda quando ALAB_SMTP_SENHA existe. Preencheu a variavel, o
+# Entao isto so roda quando ALAB_RESEND_CHAVE existe. Preencheu a variavel, o
 # proximo deploy liga tudo sozinho; nao preencheu, nada muda para o leitor.
-if [ -f "$BANCO" ] && [ -n "${ALAB_SMTP_SENHA:-}" ]; then
+if [ -f "$BANCO" ] && [ -n "${ALAB_RESEND_CHAVE:-}" ]; then
     if [ "$($WP option get alab_contas_configuradas 2>/dev/null || true)" != "1" ]; then
         echo "alab-blog: configurando contas de leitor (uma vez so)"
 
@@ -272,8 +272,8 @@ fi
 
 # Diz por que nao ligou, todo boot. Silencio aqui seria a pior saida: a
 # funcionalidade esta no codigo, nao esta no ar, e nada explicaria a diferenca.
-if [ -f "$BANCO" ] && [ -z "${ALAB_SMTP_SENHA:-}" ]; then
-    echo "alab-blog: contas de leitor NAO ligadas — falta ALAB_SMTP_SENHA." >&2
+if [ -f "$BANCO" ] && [ -z "${ALAB_RESEND_CHAVE:-}" ]; then
+    echo "alab-blog: contas de leitor NAO ligadas — falta ALAB_RESEND_CHAVE." >&2
     echo "           Comentario segue anonimo e o cadastro segue fechado, de proposito:" >&2
     echo "           sem e-mail o leitor se cadastraria e nunca receberia a senha." >&2
 fi
