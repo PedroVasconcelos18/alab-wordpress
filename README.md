@@ -145,11 +145,11 @@ o `config/application.php` mantém os dois caminhos vivos).
 ### Depois: conferir
 
 ```bash
-curl -sI https://alabventure.com/blog/            # 200, e sem host do Railway no HTML
-curl -s  https://alabventure.com/blog/ | grep -o 'railway.app'   # não pode achar nada
-curl -sI https://alabventure.com/blog             # sem barra, também 200
-curl -s  https://alabventure.com/blog/wp-json | head -c 200      # namespaces, com rankmath
-curl -sI https://alabventure.com/blog/sitemap_index.xml          # 200
+curl -sI https://www.alabventure.com/blog/            # 200, e sem host do Railway no HTML
+curl -s  https://www.alabventure.com/blog/ | grep -o 'railway.app'   # não pode achar nada
+curl -sI https://www.alabventure.com/blog             # sem barra, também 200
+curl -s  https://www.alabventure.com/blog/wp-json | head -c 200      # namespaces, com rankmath
+curl -sI https://www.alabventure.com/blog/sitemap_index.xml          # 200
 ```
 
 E clique no menu, não confie só no `curl`: navegação é a coisa que passa verde no
@@ -293,7 +293,7 @@ primeira. Uma linha por usuário deixa o banco resolver a concorrência, e a
 unicidade sai de graça.
 
 ```bash
-curl -s https://alabventure.com/blog/wp-json/alab/v1/curtidas/<id>   # {"total":N,"minha":false}
+curl -s https://www.alabventure.com/blog/wp-json/alab/v1/curtidas/<id>   # {"total":N,"minha":false}
 ```
 
 `POST` na mesma rota alterna, e exige sessão — é o ponto inteiro de amarrar
@@ -336,7 +336,7 @@ aberto. Comando na seção abaixo — rode antes de publicar qualquer conteúdo.
 `alabventure.com/robots.txt` responde 404, então o `sitemap_index.xml` do Rank
 Math não é anunciado a ninguém. O arquivo pertence à **raiz do domínio**, não ao
 `/blog`: `alab-lp/public/robots.txt`, com a linha
-`Sitemap: https://alabventure.com/blog/sitemap_index.xml`.
+`Sitemap: https://www.alabventure.com/blog/sitemap_index.xml`.
 
 ### Sem tagline
 
