@@ -249,6 +249,56 @@ sessão. O `config/environments/staging.php` já está escrito e já força
 com volume próprio e `WP_ENV=staging`. Enquanto não existir, o container local é
 o único portão antes do público.
 
+## Contas de leitor, comentários e curtidas
+
+Comentário e curtida ficam presos a uma conta. O que o WordPress já dá de graça
+é a parte grande — moderação, spam e lixeira nativos, em *Comentários* no painel.
+
+| | |
+| --- | --- |
+| Cadastro | aberto, papel `subscriber` — não escreve post, não vê rascunho, não mexe em nada |
+| Comentar | exige login (`comment_registration`) |
+| Anti-spam | o primeiro comentário de cada autor fica retido. É o filtro mais barato que existe e não depende de terceiro |
+| Curtidas | código nosso: `web/app/mu-plugins/alab-curtidas.php` |
+
+### 🔴 Falta uma variável, e é ela que liga tudo
+
+```bash
+ALAB_SMTP_SENHA=re_...     # a API key do Resend
+```
+
+**Enquanto estiver vazia, nada disso está no ar** — de propósito. Comentário
+segue anônimo e o cadastro segue fechado. Ligar `comment_registration` sem
+cadastro funcionando seria uma *regressão*: hoje qualquer um comenta, e passaria
+a ser preciso ter conta que ninguém consegue criar. Preencheu a variável, o
+próximo deploy liga tudo sozinho e o log diz que ligou.
+
+⚠️ **`alabventure.com` precisa estar verificado no Resend.** Mandar de domínio
+não verificado é recusado no envio, não na configuração — o sintoma é o mesmo
+silêncio de não ter SMTP nenhum. Se só `clama.me` estiver verificado, ou
+verifique este domínio, ou aponte `ALAB_EMAIL_REMETENTE` para um endereço que
+já passe.
+
+Por que não um plugin de SMTP: `wp-mail-smtp` e parentes guardam credencial no
+BANCO, por assistente no painel — exatamente o que `DISALLOW_FILE_MODS` e o
+resto deste projeto existem para evitar. Credencial é ambiente. Quem faz o
+trabalho são vinte linhas em `mu-plugins/alab-email.php`, sem estado e sem tela.
+
+### Onde as curtidas moram
+
+Uma linha de post meta por usuário (`_alab_curtida`), **não** um array
+serializado. O array é o caminho óbvio e é uma corrida perdida: ler, somar,
+gravar não é atômico, e duas curtidas no mesmo segundo fazem a segunda apagar a
+primeira. Uma linha por usuário deixa o banco resolver a concorrência, e a
+unicidade sai de graça.
+
+```bash
+curl -s https://alabventure.com/blog/wp-json/alab/v1/curtidas/<id>   # total e se você curtiu
+```
+
+`POST` na mesma rota alterna, e exige sessão — é o ponto inteiro de amarrar
+curtida a conta: sem isso a contagem é chute e dá para inflar.
+
 ## Pendências
 
 Nenhuma impede o blog de servir. As duas primeiras são as que importam.
