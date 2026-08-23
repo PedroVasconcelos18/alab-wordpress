@@ -293,11 +293,17 @@ primeira. Uma linha por usuário deixa o banco resolver a concorrência, e a
 unicidade sai de graça.
 
 ```bash
-curl -s https://alabventure.com/blog/wp-json/alab/v1/curtidas/<id>   # total e se você curtiu
+curl -s https://alabventure.com/blog/wp-json/alab/v1/curtidas/<id>   # {"total":N,"minha":false}
 ```
 
 `POST` na mesma rota alterna, e exige sessão — é o ponto inteiro de amarrar
 curtida a conta: sem isso a contagem é chute e dá para inflar.
+
+⚠️ **`minha` sai `false` num `curl` simples, sempre**, mesmo com sessão. A
+autenticação por cookie do REST do WordPress depende do cabeçalho `X-WP-Nonce`;
+sem ele o cookie é ignorado e `get_current_user_id()` devolve 0. Medido no
+navegador. O `total` não depende disso, e nada no site usa esse `GET` — o botão
+é renderizado pelo PHP, que já sabe quem é o usuário.
 
 ## Pendências
 

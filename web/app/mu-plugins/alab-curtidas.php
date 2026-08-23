@@ -51,6 +51,16 @@ function alab_usuario_curtiu(int $post, int $usuario): bool
  *
  * GET  devolve o estado. POST alterna, e exige sessão — é o ponto inteiro de
  * amarrar curtida a conta: sem isso a contagem é chute e dá para inflar.
+ *
+ * ⚠️ `minha` no GET só é verdadeiro se a chamada mandar o cabeçalho
+ * `X-WP-Nonce`. A autenticação por cookie do REST do WordPress depende do
+ * nonce; sem ele o cookie é ignorado, `get_current_user_id()` devolve 0 e a
+ * resposta sai `minha: false` mesmo com sessão aberta. Medido no navegador, e
+ * é armadilha para quem for consumir isto depois: um `curl` simples SEMPRE
+ * devolve false. O `total` não depende disso.
+ *
+ * Nada aqui usa esse GET — o botão é renderizado pelo PHP, que já sabe quem é
+ * o usuário. Ele existe para consulta externa.
  */
 add_action('rest_api_init', function (): void {
     $rota = '/curtidas/(?P<post>\d+)';
