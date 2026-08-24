@@ -368,3 +368,31 @@ add_filter('show_admin_bar', function ($mostrar) {
 add_filter('edit_profile_url', function ($url) {
     return alab_acesso_e_leitor() ? home_url('/') : $url;
 });
+
+/**
+ * 5. "Conectado como X. Edite seu perfil. Sair?" — sai o meio.
+ *
+ * O core monta essa linha no formulário de comentário com um link para o
+ * perfil. Depois do item 4 esse link é um BECO: leva ao `profile.php`, que
+ * devolve o leitor para o blog. Oferecer um caminho que não vai a lugar nenhum
+ * é pior do que não oferecer.
+ *
+ * Substituo a linha inteira em vez de recortar pedaço dela: o texto do core é
+ * traduzido e muda entre versões, então qualquer tentativa de remover por
+ * `str_replace` ou regex quebraria calada numa atualização — foi exatamente o
+ * que aconteceu com o aviso do cadastro. Montando o markup aqui, o que aparece
+ * é o que está escrito neste arquivo.
+ *
+ * "Sair" fica: deslogar é coisa legítima de leitor.
+ */
+add_filter('comment_form_logged_in', function ($padrao, $comentarista, $identidade) {
+    if (current_user_can('edit_posts')) {
+        return $padrao;
+    }
+
+    return sprintf(
+        '<p class="logged-in-as">Conectado como <strong>%s</strong>. <a href="%s">Sair</a></p>',
+        esc_html($identidade),
+        esc_url(wp_logout_url(get_permalink()))
+    );
+}, 10, 3);
