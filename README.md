@@ -284,6 +284,35 @@ BANCO, por assistente no painel — exatamente o que `DISALLOW_FILE_MODS` e o
 resto deste projeto existem para evitar. Credencial é ambiente. Quem faz o
 trabalho são vinte linhas em `mu-plugins/alab-email.php`, sem estado e sem tela.
 
+### O leitor nunca vê o wp-admin
+
+O padrão do WordPress joga **qualquer** usuário autenticado no painel. Sem
+`redirect_to`, um assinante recém-cadastrado cai em `wp-admin/profile.php` —
+tela de administração em cima de um blog que ele só queria comentar. Aconteceu
+no primeiro cadastro de verdade.
+
+Fechar só o redirecionamento seria enfeite. São quatro portas, em
+`mu-plugins/alab-acesso.php`:
+
+| | |
+| --- | --- |
+| `login_redirect` | manda o leitor para o blog. Um `redirect_to` explícito continua valendo — é o que faz o "Curtir" deslogado levar ao login e **voltar para o post**. Só é descartado quando aponta para dentro do wp-admin |
+| `admin_init` | barra a URL digitada à mão. Sem isto o primeiro item é decoração |
+| `show_admin_bar` | tira a barra preta do topo |
+| `edit_profile_url` | aponta para o blog |
+
+A linha de corte é a capacidade **`edit_posts`** — assinante não tem, autor e
+acima têm. Não é papel nem lista de nomes: é o mesmo critério que o WordPress
+usa para todo o resto, e é o que garante que o admin continua entrando normal.
+
+⚠️ `admin-ajax.php` fica **de fora** do bloqueio. Ele mora dentro de wp-admin
+mas é o endpoint que o frontend usa; barrá-lo quebraria funcionalidade de
+leitor sem deixar pista nenhuma.
+
+⚠️ **Consequência assumida:** o leitor não troca a própria senha logado, porque
+essa tela é a de perfil. O caminho passa a ser "Perdeu a senha?", que manda o
+link por e-mail e funciona.
+
 ### Onde as curtidas moram
 
 Uma linha de post meta por usuário (`_alab_curtida`), **não** um array
