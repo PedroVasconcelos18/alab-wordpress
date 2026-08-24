@@ -191,6 +191,17 @@ body.login::before {
 .login #pass-strength-result.good   { border-color: #5BB4FF; }
 .login #pass-strength-result.strong { border-color: #6FE3B6; }
 
+/* O "Lembrar-me" fica branco puro sem isto — o único ponto claro da tela. */
+.login input[type="checkbox"] {
+    accent-color: #5BB4FF;
+    background: #0A0F1C;
+    border: 1px solid rgba(196,205,217,0.18);
+    border-radius: 3px;
+    width: 16px;
+    height: 16px;
+}
+.login input[type="checkbox"]:checked::before { content: none; }
+
 /* O seletor de idioma sai: o site é pt_BR, e a escolha aqui só confunde. */
 .login .language-switcher { display: none; }
 CSS;

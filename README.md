@@ -363,6 +363,27 @@ dele.
 
 ---
 
+## As telas de acesso
+
+O `wp-login.php` **não passa pelo tema**. É arquivo do core, com CSS próprio, e
+ignora o `theme.json` inteiro — por isso o blog ficou vestido e o cadastro
+continuou cinza, com o "W" do WordPress e botão azul.
+
+`mu-plugins/alab-acesso.php` veste as quatro telas de uma vez: login, cadastro,
+"perdi a senha" e "definir senha". Os valores são copiados do `lp.css`, não
+aproximados: aqui não dá para usar as variáveis do `theme.json`, que só existem
+junto com as global styles e não carregam nesta página.
+
+Também troca o destino do logo — o padrão do core aponta para `wordpress.org`,
+um link para fora do site bem na hora em que a pessoa vai digitar a senha — e
+esconde o seletor de idioma, que num site só em pt_BR só serve para confundir.
+
+⚠️ Um dos ajustes depende da **marcação de aviso do core**, que muda entre
+versões: no 7.0 é `<div class="notice notice-info message register">`, e nas
+antigas era `<p class="message register">`. O filtro casa as duas formas e pela
+classe, não pela posição. Se um aviso duplicado reaparecer depois de atualizar
+o WordPress, é aqui.
+
 ## Idioma
 
 O site é `pt_BR`, e chegar nisso não foi óbvio: os **dois** caminhos normais
