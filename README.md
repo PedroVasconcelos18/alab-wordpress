@@ -352,37 +352,40 @@ escolha por subdiretório existe para evitar. Ver `alab-lp/README.md`.
 
 ## Backup — é seu
 
-Volume não é backup. O arquivo **é** o banco inteiro:
+Volume não é backup. O arquivo **é** o banco inteiro: usuários, e-mails, hashes
+de senha, comentários e curtidas.
+
+🔴 **Rode de dentro deste diretório.** O `railway volume` usa o projeto
+vinculado ao diretório atual, e **o clama tem um volume com o MESMO nome**
+(`blog-volume`). Rodar de `~`, que está vinculado ao `clama_backend`, baixa o
+banco do clama com cara de sucesso — mesmo comando, mesma mensagem, arquivo
+errado. Aconteceu.
 
 ```bash
-railway volume files -v <volume> download /database/.ht.sqlite ./backup-$(date +%F).sqlite
+cd ~/projects/alab/alab-wordpress     # ← o passo que não pode faltar
+railway status                        # tem que dizer: alab
+railway volume files -v blog-volume download /database/.ht.sqlite ./backup-$(date +%F).sqlite
 ```
 
-Uploads também vivem no volume (`/data/uploads`) e não estão em lugar nenhum além
-dele.
+**Confira o que baixou, sempre.** Backup que ninguém abriu não é backup, e é
+assim que se percebe que veio do projeto errado:
 
----
+```bash
+sqlite3 backup-AAAA-MM-DD.sqlite "PRAGMA integrity_check;"
+sqlite3 backup-AAAA-MM-DD.sqlite "SELECT user_login, user_email FROM wp_users;"
+sqlite3 backup-AAAA-MM-DD.sqlite \
+  "SELECT option_value FROM wp_options WHERE option_name='alab_contas_configuradas';"
+```
 
-## As telas de acesso
+O banco da A.lab tem o usuário `pedro`, e a opção `alab_contas_configuradas`
+existe. Se aparecer `Clama` / `admin@clama.me`, ou a opção não existir, você
+baixou o volume do outro projeto.
 
-O `wp-login.php` **não passa pelo tema**. É arquivo do core, com CSS próprio, e
-ignora o `theme.json` inteiro — por isso o blog ficou vestido e o cadastro
-continuou cinza, com o "W" do WordPress e botão azul.
+O tamanho também denuncia: o volume da A.lab está em ~150 MB, o do clama em
+~1 MB.
 
-`mu-plugins/alab-acesso.php` veste as quatro telas de uma vez: login, cadastro,
-"perdi a senha" e "definir senha". Os valores são copiados do `lp.css`, não
-aproximados: aqui não dá para usar as variáveis do `theme.json`, que só existem
-junto com as global styles e não carregam nesta página.
-
-Também troca o destino do logo — o padrão do core aponta para `wordpress.org`,
-um link para fora do site bem na hora em que a pessoa vai digitar a senha — e
-esconde o seletor de idioma, que num site só em pt_BR só serve para confundir.
-
-⚠️ Um dos ajustes depende da **marcação de aviso do core**, que muda entre
-versões: no 7.0 é `<div class="notice notice-info message register">`, e nas
-antigas era `<p class="message register">`. O filtro casa as duas formas e pela
-classe, não pela posição. Se um aviso duplicado reaparecer depois de atualizar
-o WordPress, é aqui.
+Uploads também vivem no volume (`/data/uploads`) e não estão em lugar nenhum
+além dele.
 
 ## Idioma
 
