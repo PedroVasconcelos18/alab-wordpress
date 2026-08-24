@@ -214,6 +214,21 @@ CSS;
 });
 
 /**
+ * Favicon nas telas de acesso.
+ *
+ * 🔴 O `wp-login.php` NÃO dispara `wp_head` — ele tem o `login_head`. Então o
+ * ícone que o tema declara não vale aqui, e o navegador cai no `/favicon.ico`
+ * da raiz do domínio, que é a landing e não tem esse arquivo: 404 no console
+ * de toda tela de acesso. É o mesmo bug que já foi corrigido no tema, num
+ * gancho que ninguém lembra que existe.
+ */
+add_action('login_head', function (): void {
+    $app = defined('ALAB_APP_URL') ? rtrim((string) ALAB_APP_URL, '/') : '';
+
+    printf('<link rel="icon" href="%s/icon.svg" type="image/svg+xml">' . "\n", esc_url($app));
+});
+
+/**
  * O logo aponta para a landing, não para o wp-admin.
  *
  * O padrão do WordPress manda para wordpress.org — link para fora do site, na
