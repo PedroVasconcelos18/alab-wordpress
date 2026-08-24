@@ -235,6 +235,12 @@ add_filter('login_message', function (string $mensagem): string {
 
     $linha = $linhas[$acao] ?? $linhas['login'];
 
+    // O core mostra "Cadastre-se nesse site" acima do formulário, que é a
+    // mesma frase da linha acima em caixa de aviso — dois avisos dizendo o
+    // mesmo. Sai só ele; qualquer outra mensagem (como "verifique seu e-mail"
+    // depois do cadastro) é informação real e continua.
+    $mensagem = preg_replace('#<p class="message register">.*?</p>\s*#s', '', $mensagem);
+
     return '<div class="alab-acesso-marca">A.lab<span> /tech</span></div>'
         . '<p class="alab-acesso-linha">' . esc_html($linha) . '</p>'
         . $mensagem;
