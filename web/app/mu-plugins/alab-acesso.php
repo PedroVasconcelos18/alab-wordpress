@@ -239,7 +239,16 @@ add_filter('login_message', function (string $mensagem): string {
     // mesma frase da linha acima em caixa de aviso — dois avisos dizendo o
     // mesmo. Sai só ele; qualquer outra mensagem (como "verifique seu e-mail"
     // depois do cadastro) é informação real e continua.
-    $mensagem = preg_replace('#<p class="message register">.*?</p>\s*#s', '', $mensagem);
+    //
+    // ⚠️ No WordPress 7.0 isto é `<div class="notice notice-info message
+    // register">`, não o `<p class="message register">` das versões antigas.
+    // Casar as duas formas, e pela classe e não pela posição, porque a
+    // marcação de aviso do core já mudou uma vez e vai mudar de novo.
+    $mensagem = preg_replace(
+        '#<(p|div)[^>]*class="[^"]*\bmessage register\b[^"]*"[^>]*>.*?</\1>\s*#s',
+        '',
+        $mensagem
+    );
 
     return '<div class="alab-acesso-marca">A.lab<span> /tech</span></div>'
         . '<p class="alab-acesso-linha">' . esc_html($linha) . '</p>'
