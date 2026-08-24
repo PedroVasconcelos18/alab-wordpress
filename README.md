@@ -16,7 +16,7 @@ O desenho e as armadilhas estão no playbook, que fica no repo da landing:
 | Projeto Railway | `alab` |
 | Serviço | `blog`, buildando de `PedroVasconcelos18/alab-wordpress@main` |
 | Origem | `blog-production-b190.up.railway.app` |
-| Volume | `blog-volume` em `/data`, 5 GB |
+| Volume | `alab-blog-dados` em `/data`, 5 GB |
 | Réplicas | 1 (limite do SQLite, ver abaixo) |
 
 O provisionamento rodou em 2026-08-08 e as variáveis `ALAB_PROVISIONAR`,
@@ -356,15 +356,23 @@ Volume não é backup. O arquivo **é** o banco inteiro: usuários, e-mails, has
 de senha, comentários e curtidas.
 
 🔴 **Rode de dentro deste diretório.** O `railway volume` usa o projeto
-vinculado ao diretório atual, e **o clama tem um volume com o MESMO nome**
-(`blog-volume`). Rodar de `~`, que está vinculado ao `clama_backend`, baixa o
-banco do clama com cara de sucesso — mesmo comando, mesma mensagem, arquivo
-errado. Aconteceu.
+vinculado ao diretório atual, e o comando não pergunta nada.
+
+Isto já deu errado uma vez, e vale entender por quê: os dois volumes se
+chamavam `blog-volume` — o da A.lab e o do clama. Rodar de `~`, que está
+vinculado ao `clama_backend`, baixou o banco do clama com cara de sucesso:
+mesmo comando, mesma mensagem de "Downloaded", arquivo de outro site. Restaurar
+aquilo teria sobrescrito a A.lab.
+
+O volume daqui foi renomeado para **`alab-blog-dados`** justamente por isso.
+Nome é rótulo — o `mountPath` continua `/data` e o dado não se mexe —, mas
+agora o comando errado **falha** em vez de acertar o alvo errado: de um
+diretório do clama, `-v alab-blog-dados` não encontra volume nenhum.
 
 ```bash
 cd ~/projects/alab/alab-wordpress     # ← o passo que não pode faltar
 railway status                        # tem que dizer: alab
-railway volume files -v blog-volume download /database/.ht.sqlite ./backup-$(date +%F).sqlite
+railway volume files -v alab-blog-dados download /database/.ht.sqlite ./backup-$(date +%F).sqlite
 ```
 
 **Confira o que baixou, sempre.** Backup que ninguém abriu não é backup, e é
