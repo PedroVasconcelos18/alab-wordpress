@@ -285,3 +285,86 @@ add_filter('login_message', function (string $mensagem): string {
  * Título da aba sem "‹ … — WordPress" pendurado.
  */
 add_filter('login_title', fn ($titulo) => 'Acesso — A.lab');
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * O leitor nunca vê o wp-admin.
+ *
+ * 🔴 O padrão do WordPress joga QUALQUER usuário autenticado no painel. Sem
+ * `redirect_to`, um assinante recém-cadastrado cai em `wp-admin/profile.php` —
+ * uma tela de administração do WordPress, em cima de um blog que ele só queria
+ * comentar. Foi o que aconteceu no primeiro cadastro de verdade.
+ *
+ * São QUATRO portas, e fechar só a primeira não resolve: o redirecionamento do
+ * login, a URL digitada à mão, a barra preta no topo do site, e a tela de
+ * perfil. Abaixo, uma por uma.
+ *
+ * A linha de corte é `edit_posts`: assinante não tem, autor e acima têm. Não
+ * uso `is_admin()` como papel nem lista de nomes — capacidade é o que o
+ * WordPress usa para decidir tudo o mais.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+function alab_acesso_e_leitor(): bool
+{
+    return is_user_logged_in() && !current_user_can('edit_posts');
+}
+
+/**
+ * 1. Depois do login, vai para o blog — não para o painel.
+ *
+ * Um `redirect_to` pedido explicitamente continua valendo: é o que faz o
+ * "Curtir" deslogado levar ao login e VOLTAR para o post. Só é descartado
+ * quando aponta para dentro do wp-admin, que é o caso que estamos consertando.
+ */
+add_filter('login_redirect', function ($destino, $pedido, $usuario) {
+    if (!$usuario instanceof WP_User || user_can($usuario, 'edit_posts')) {
+        return $destino;
+    }
+
+    if (is_string($pedido) && $pedido !== '' && !str_contains($pedido, '/wp-admin')) {
+        return $pedido;
+    }
+
+    return home_url('/');
+}, 10, 3);
+
+/**
+ * 2. A URL digitada à mão.
+ *
+ * Sem isto, o item 1 é decoração: basta escrever /wp-admin para entrar.
+ *
+ * ⚠️ `admin-ajax.php` fica de fora. Ele mora dentro de wp-admin mas é o
+ * endpoint que o FRONTEND usa — barrá-lo quebraria funcionalidade de leitor
+ * sem que nada indicasse o motivo.
+ */
+add_action('admin_init', function (): void {
+    if (!alab_acesso_e_leitor() || wp_doing_ajax()) {
+        return;
+    }
+
+    wp_safe_redirect(home_url('/'));
+    exit;
+});
+
+/**
+ * 3. A barra preta do WordPress no topo do site.
+ *
+ * Para quem não administra nada, ela só entrega que o site é WordPress e
+ * oferece atalhos para telas que o item 2 acabou de fechar.
+ */
+add_filter('show_admin_bar', function ($mostrar) {
+    return alab_acesso_e_leitor() ? false : $mostrar;
+});
+
+/**
+ * 4. O perfil, que é o destino mais provável de um link antigo.
+ *
+ * ⚠️ Consequência assumida: o leitor não troca a própria senha logado, porque
+ * essa tela é a de perfil. O caminho passa a ser "Perdeu a senha?", que manda
+ * o link por e-mail e funciona. É a troca que o pedido implica — não mostrar
+ * tela de administração a quem não administra.
+ */
+add_filter('edit_profile_url', function ($url) {
+    return alab_acesso_e_leitor() ? home_url('/') : $url;
+});
