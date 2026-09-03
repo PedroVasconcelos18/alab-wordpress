@@ -177,13 +177,44 @@ Config::define('NONCE_SALT', env('NONCE_SALT'));
 Config::define('AUTOMATIC_UPDATER_DISABLED', true);
 Config::define('DISABLE_WP_CRON', env('DISABLE_WP_CRON') ?: false);
 
-// Editor de arquivo no admin, desligado.
-Config::define('DISALLOW_FILE_EDIT', true);
+// Editor de arquivo no admin (Aparência › Editor de arquivos do tema,
+// Plugins › Editor de plugins).
+//
+// ⚠️ Quem edita arquivo executa PHP arbitrário no servidor — é o caminho mais
+// curto que existe entre uma conta de admin comprometida e um shell. Fica
+// ligado porque a operação do blog pediu, não porque seja inofensivo: a
+// contrapartida é senha forte na conta de admin e nenhum admin a mais do que
+// os necessários.
+//
+// Para desligar sem tocar em código: `DISALLOW_FILE_EDIT=true` nas variáveis.
+Config::define('DISALLOW_FILE_EDIT', env('DISALLOW_FILE_EDIT') ?: false);
 
-// Instalação/atualização de plugin e tema pelo admin, desligada: as
-// dependências vêm do Composer, versionadas no lock. Instalar pelo painel
-// criaria um estado que o próximo deploy apaga sem avisar.
-Config::define('DISALLOW_FILE_MODS', true);
+// Instalação/atualização de plugin, tema e idioma pelo admin.
+//
+// 🔴 Isto só é seguro de ligar porque `docker/docker-entrypoint.sh` aponta
+// `plugins`, `themes` e `languages` para o volume. Com a trava desligada e os
+// diretórios vivendo na imagem, o painel instalaria com sucesso, a tela diria
+// "Plugin ativado", e o próximo deploy apagaria tudo — sem erro e sem log,
+// então a suspeita cairia no plugin em vez de cair na infraestrutura.
+//
+// A convivência com o Composer está no entrypoint: o que vem do
+// `composer.json` é sobrescrito pela imagem a cada boot; o que foi instalado
+// pelo painel é preservado. Plugin que deve passar por revisão continua
+// entrando por PR, e ganha do painel em caso de conflito de nome.
+Config::define('DISALLOW_FILE_MODS', env('DISALLOW_FILE_MODS') ?: false);
+
+// 🔴 Sem isto o wp-admin PEDE CREDENCIAL DE FTP para instalar qualquer coisa.
+//
+// `get_filesystem_method()` decide criando um arquivo temporário e comparando
+// o `fileowner()` dele com o dono do processo PHP: iguais, escreve direto;
+// diferentes, cai para FTP/SSH e abre o formulário de credencial — que aqui
+// ninguém tem, porque não existe FTP nenhum.
+//
+// Com `plugins` e `themes` virando symlink para o volume, essa comparação
+// passa a depender de quem é dono de `/data` no host do Railway, e deixa de
+// ser previsível. Declarar `direct` é determinístico, e o entrypoint garante a
+// premissa: o volume inteiro é de www-data, que é quem roda o Apache.
+Config::define('FS_METHOD', 'direct');
 
 Config::define('WP_POST_REVISIONS', env('WP_POST_REVISIONS') ?? true);
 Config::define('CONCATENATE_SCRIPTS', false);

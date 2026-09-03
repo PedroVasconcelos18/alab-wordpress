@@ -18,6 +18,9 @@ Config::define('DISALLOW_INDEXING', true);
 
 ini_set('display_errors', '1');
 
-// Local pode instalar plugin/tema pelo painel para experimentar — o que ficar
-// só volta para produção passando pelo composer.json.
+// Produção também instala pelo painel desde que a trava saiu, então isto
+// deixou de ser um override e virou garantia: se alguém definir
+// `DISALLOW_FILE_MODS=true` nas variáveis para endurecer produção, local
+// continua aberto para experimentar.
 Config::define('DISALLOW_FILE_MODS', false);
+Config::define('DISALLOW_FILE_EDIT', false);

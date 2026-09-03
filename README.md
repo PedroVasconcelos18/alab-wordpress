@@ -280,9 +280,10 @@ verifique este domínio, ou aponte `ALAB_EMAIL_REMETENTE` para um endereço que
 já passe.
 
 Por que não um plugin de SMTP: `wp-mail-smtp` e parentes guardam credencial no
-BANCO, por assistente no painel — exatamente o que `DISALLOW_FILE_MODS` e o
-resto deste projeto existem para evitar. Credencial é ambiente. Quem faz o
-trabalho são vinte linhas em `mu-plugins/alab-email.php`, sem estado e sem tela.
+BANCO, por assistente no painel — e credencial no banco é o que este projeto
+evita, agora que instalar plugin pelo painel deixou de ser proibido. Credencial
+é ambiente: sai do Railway, não de um formulário. Quem faz o trabalho são vinte
+linhas em `mu-plugins/alab-email.php`, sem estado e sem tela.
 
 ### O leitor nunca vê o wp-admin
 
@@ -444,10 +445,11 @@ com valor vazio — então ela sobrescreve a constante com `''` e o
 `if ( empty( $locale ) )` logo abaixo devolve `en_US`. A constante `WPLANG` só
 valeria se a linha não existisse no banco, que nunca é o caso.
 
-**Pelo painel também não.** O dropdown de *Configurações › Geral* lista apenas
-idioma já instalado, e `DISALLOW_FILE_MODS` — a mesma trava que impede plugin
-instalado pelo painel de sumir no deploy seguinte — proíbe o WordPress de
-baixar. Sem nenhum pacote na imagem, a única opção do dropdown é English.
+**Pelo painel, só depois.** O dropdown de *Configurações › Geral* lista apenas
+idioma já instalado. Hoje o WordPress consegue baixar (`DISALLOW_FILE_MODS`
+saiu), mas isso exige alguém logado clicando — e até lá todo visitante veria o
+site em inglês, inclusive no primeiro boot, quando não há admin nenhum. Sem
+pacote na imagem, a única opção do dropdown é English.
 
 Então são duas peças, e cada uma resolve metade:
 
@@ -471,10 +473,55 @@ Três, e cada um tem motivo:
 | `seo-by-rank-math` | title, meta, Open Graph, JSON-LD, sitemap e redirects por configuração. `RANK_MATH_REGISTRATION_SKIP` está definido: sem ela o plugin fica ativo e não emite nada |
 | `roots/bedrock-disallow-indexing` | impede que ambiente que não é produção seja indexado |
 
-Instalar plugin pelo painel está **desligado** (`DISALLOW_FILE_MODS`): o que não
-está no `composer.json` some no próximo deploy. Plugin novo entra por PR, com o
-lock atualizado. E no máximo **um** plugin de segurança — Wordfence + Solid +
+### Instalar plugin pelo painel
+
+Está **ligado**. `DISALLOW_FILE_MODS` e `DISALLOW_FILE_EDIT` têm default
+`false` em `config/application.php`, e o admin instala, atualiza e edita como
+em qualquer WordPress.
+
+Isso só funciona porque `docker/docker-entrypoint.sh` aponta `plugins`,
+`themes` e `languages` para o volume. **A ordem importa**: desligar a trava sem
+o volume daria uma instalação que funciona na tela e desaparece no deploy
+seguinte, sem erro e sem log — o pior dos dois mundos, porque a suspeita cairia
+no plugin.
+
+🔴 **Quem ganha quando os dois lados têm o mesmo plugin:**
+
+| origem | o que acontece no deploy |
+| --- | --- |
+| está no `composer.json` | a **imagem** sobrescreve o volume, todo boot |
+| instalado pelo painel | o **volume** manda, e sobrevive |
+
+A consequência prática: editar pelo admin um arquivo de plugin que veio do
+Composer funciona até o próximo deploy e some lá. É de propósito — a
+alternativa é produção divergir do repositório em silêncio.
+
+A outra: plugin removido do `composer.json` fica **órfão** no volume e continua
+ativo, porque a sincronia não apaga (apagar levaria junto o que o painel
+instalou). Remoção é manual, com `wp plugin delete <nome>`.
+
+O que muda pelo painel não está no `composer.lock` e não passa por revisão.
+Para o que é infraestrutura do blog, o caminho continua sendo PR com o lock
+atualizado. E no máximo **um** plugin de segurança — Wordfence + Solid +
 Patchstack juntos não somam proteção, somam superfície e conflito.
+
+Duas coisas foram junto com a liberação, e nenhuma é cosmética:
+
+- **`FS_METHOD = 'direct'`** (`config/application.php`). Sem isto o wp-admin
+  pede credencial de **FTP** para instalar: o WordPress compara o dono de um
+  arquivo temporário com o dono do processo PHP, e com o diretório sendo
+  symlink para o volume esse resultado deixa de ser previsível.
+- **`opcache.validate_timestamps = 1`** (`Dockerfile`), que era `0`. O zero
+  estava certo enquanto código só mudava por deploy. Com atualização pelo
+  painel ele vira um bug mudo: os arquivos novos são gravados, a tela diz
+  "Atualizado com sucesso", e o PHP segue executando a versão antiga até o
+  container reiniciar — o que ninguém faz. Instalar plugin **novo** funcionaria
+  mesmo assim (arquivo inédito não está no cache); é só a atualização que
+  quebra, e é justamente onde ninguém desconfia.
+
+Para endurecer de volta, sem tocar em código: `DISALLOW_FILE_MODS=true` e/ou
+`DISALLOW_FILE_EDIT=true` nas variáveis do Railway. A segunda é a mais barata
+das duas — quem edita arquivo pelo admin executa PHP no servidor.
 
 ## O tema
 

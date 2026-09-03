@@ -32,6 +32,81 @@ ln -sfn "$DADOS/uploads" /app/web/app/uploads
 
 chown -R www-data:www-data "$DADOS/database" "$DADOS/uploads"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Plugins, temas e traducoes: instalaveis pelo painel, e por isso no volume.
+#
+# `DISALLOW_FILE_MODS` esta DESLIGADO (config/application.php). Sem este bloco
+# isso seria uma armadilha em vez de uma funcionalidade: o painel instalaria,
+# diria "Plugin ativado", e o proximo deploy apagaria — a imagem e recriada do
+# zero e nao ha erro nenhum para investigar depois.
+#
+# 🔴 A REGRA DE PRECEDENCIA, que e a parte que nao e obvia:
+#
+#   o que vem do composer.json  → a IMAGEM ganha, todo boot, sobrescrevendo
+#   o que veio do painel        → o VOLUME ganha, e sobrevive ao deploy
+#
+# Ou seja: o lock continua sendo a verdade para o que esta nele. Editar pelo
+# admin um arquivo de plugin que veio do Composer funciona ate o proximo
+# deploy e some la — de proposito, porque a alternativa e producao divergir do
+# repositorio em silencio.
+#
+# ⚠️ Por que item a item e nao `cp -a origem/. destino/` ou `rsync --delete`:
+# as duas formas mais curtas apagariam justamente o que o painel instalou, que
+# e o motivo deste bloco existir. Aqui so e tocado o que a imagem realmente
+# traz; o resto do volume nao e olhado.
+#
+# Plugin removido do composer.json fica ORFAO no volume e continua ativo. E o
+# preco de nao dar `--delete`, e a remocao e manual: `wp plugin delete <nome>`.
+# ─────────────────────────────────────────────────────────────────────────────
+persistir_no_volume() {
+    nome="$1"
+    origem="/app/web/app/$nome"
+    destino="$DADOS/$nome"
+
+    mkdir -p "$destino"
+
+    # `-L` protege contra rodar duas vezes: se ja e symlink, a imagem nao tem
+    # mais o conteudo original e copiar daqui copiaria o volume sobre si mesmo.
+    if [ -d "$origem" ] && [ ! -L "$origem" ]; then
+        for item in "$origem"/* "$origem"/.[!.]*; do
+            [ -e "$item" ] || continue
+            base=$(basename "$item")
+            rm -rf "${destino:?}/$base"
+            cp -a "$item" "$destino/"
+        done
+    fi
+
+    rm -rf "$origem"
+    ln -sfn "$destino" "$origem"
+}
+
+persistir_no_volume plugins
+persistir_no_volume themes
+persistir_no_volume languages
+
+# ⚠️ `plugins` nao e opcional aqui: o drop-in `web/app/db.php` faz
+# `realpath(__DIR__ . '/plugins/sqlite-database-integration')` em TODA
+# requisicao. Se a sincronia acima falhar, nao e um plugin que quebra — e o
+# banco inteiro. Por isso o `set -e` no topo deste arquivo importa: melhor o
+# container nao subir (e o Railway mostrar o restart) do que subir servindo
+# erro de conexao com um banco que e um arquivo local.
+
+# O descompactador do WordPress precisa de `wp-content/upgrade` gravavel —
+# instalar plugin baixa o .zip para ca antes de mover. Sem o diretorio, o
+# painel falha com "Nao foi possivel criar o diretorio", que nao diz qual.
+mkdir -p "$DADOS/upgrade"
+rm -rf /app/web/app/upgrade
+ln -sfn "$DADOS/upgrade" /app/web/app/upgrade
+
+# 🔴 www-data em TUDO, e nao so nos diretorios de dados.
+#
+# `FS_METHOD=direct` esta declarado no config, mas o WordPress ainda testa se
+# consegue escrever antes de instalar. Um unico diretorio de dono errado no
+# volume vira "Nao foi possivel criar o diretorio" no meio da instalacao.
+chown -R www-data:www-data \
+    "$DADOS/database" "$DADOS/uploads" \
+    "$DADOS/plugins" "$DADOS/themes" "$DADOS/languages" "$DADOS/upgrade"
+
 # O Railway injeta PORT e espera que o processo escute nela.
 PORTA="${PORT:-8080}"
 sed -i "s/PORTA_DO_RAILWAY/${PORTA}/" /etc/apache2/sites-available/000-default.conf
@@ -125,9 +200,9 @@ fi
 # com valor vazio — entao ela sobrescreve a constante com '' e o site volta
 # para en_US. A constante so valeria se a linha nao existisse no banco.
 #
-# Pelo painel tambem nao dava: com DISALLOW_FILE_MODS o dropdown lista so
-# idioma ja instalado, e o WordPress nao pode baixar. Os .mo agora vem na
-# imagem (ver Dockerfile); falta apontar a opcao, uma vez.
+# O painel HOJE resolveria (a trava saiu e o dropdown lista pt_BR), mas depende
+# de alguem logar e clicar. Isto roda antes de existir alguem: os .mo vem na
+# imagem (ver Dockerfile) e falta so apontar a opcao, uma vez.
 #
 # So age quando a opcao esta VAZIA. Trocar o idioma pelo painel continua
 # valendo e nao e revertido no proximo deploy.

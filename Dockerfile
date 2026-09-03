@@ -46,8 +46,29 @@ RUN { \
       echo 'max_execution_time = 120'; \
       echo 'expose_php = Off'; \
       echo 'opcache.enable = 1'; \
-      echo 'opcache.validate_timestamps = 0'; \
+      echo 'opcache.validate_timestamps = 1'; \
+      echo 'opcache.revalidate_freq = 2'; \
     } > /usr/local/etc/php/conf.d/alab.ini
+
+# 🔴 `validate_timestamps = 0` era correto enquanto o código só mudava por
+# deploy: container novo, opcache novo, nada a revalidar.
+#
+# Com a instalação pelo painel ligada o código passa a mudar EM RUNTIME, e o
+# zero vira um bug difícil: atualizar um plugin pelo admin grava os arquivos
+# novos no volume, a tela diz "Atualizado com sucesso", e o PHP continua
+# executando a versão antiga — indefinidamente, porque nada mais reinicia o
+# container. Uma atualização de segurança aplicada e não aplicada ao mesmo
+# tempo, sem sintoma.
+#
+# Instalar um plugin NOVO funcionaria mesmo com zero (arquivo inédito não está
+# no cache). É só a atualização que quebra, que é exatamente o caso em que
+# ninguém desconfia.
+#
+# `revalidate_freq = 2` é o padrão do PHP, e a janela curta importa: durante ela
+# o processo roda uma MISTURA de código velho (em cache) e novo (arquivos que
+# ainda não estavam no cache). Dois segundos disso é um piscar; sessenta seriam
+# tempo suficiente para um fatal error de assinatura mudada aparecer para um
+# leitor de verdade.
 
 # WP-CLI é como se opera isto no Railway: instalar, atualizar core e plugin,
 # limpar cache de sitemap. Sem ele, a única via é o wp-admin pelo navegador —
@@ -79,19 +100,20 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 
 COPY . .
 
-# 🔴 Tradução tem que vir na imagem, e o motivo não é performance.
+# Tradução continua vindo na imagem, mesmo com o painel podendo baixar.
 #
-# `DISALLOW_FILE_MODS` desliga o instalador de idioma do WordPress — a mesma
-# trava que impede plugin instalado pelo painel de sumir no próximo deploy. Com
-# ela ligada, o dropdown de *Configurações › Geral* só lista idioma já
-# instalado, e sem nenhum instalado a única opção é English. Não há caminho
-# pelo painel.
+# Isto foi escrito quando `DISALLOW_FILE_MODS` estava ligado e o dropdown de
+# *Configurações › Geral* não tinha como oferecer pt_BR. A trava saiu, então o
+# painel HOJE conseguiria instalar idioma — o entrypoint aponta
+# `web/app/languages` para o volume e o download persistiria.
 #
-# Baixar em runtime também não serve: `web/app/languages` vive na imagem, então
-# custaria rede a cada boot para um resultado que o próximo deploy apaga.
+# Continua no build assim mesmo, por dois motivos que a trava não criava: o
+# site precisa subir em pt_BR na PRIMEIRA requisição, antes de existir admin
+# para clicar em nada; e a versão de cada pacote sai do `composer.lock`, o que
+# mantém core e tradução no mesmo passo. Ver `docker/baixar-traducoes.php`.
 #
-# A versão de cada pacote sai do que está instalado, não de um número escrito à
-# mão — ver `docker/baixar-traducoes.php`.
+# O que o painel instalar por cima vive no volume e sobrevive ao deploy — só
+# não vale para os pacotes que este passo já traz, que a imagem reescreve.
 ARG ALAB_LOCALE=pt_BR
 RUN php docker/baixar-traducoes.php "${ALAB_LOCALE}" /app/web/app/languages /app/web
 

@@ -5,14 +5,19 @@
  *
  * Por que aqui e não em runtime:
  *
- * - `DISALLOW_FILE_MODS` desliga o instalador de idioma do WordPress. É de
- *   propósito — é a mesma trava que impede plugin instalado pelo painel de
- *   sumir no próximo deploy — e vale para tradução também.
- * - O diretório de idiomas é `web/app/languages`, que vive na IMAGEM. Baixar
- *   em runtime custaria rede a cada boot e o resultado morreria no deploy
- *   seguinte. Pôr no volume resolveria a persistência, mas o volume é para
- *   DADO (banco e uploads); tradução é dependência, e dependência aqui é
- *   reproduzível a partir do repositório.
+ * - O site tem que subir em pt_BR na PRIMEIRA requisição. Instalar idioma pelo
+ *   painel pressupõe um admin logado clicando, e até lá todo visitante veria o
+ *   site em inglês — inclusive na instalação inicial, que é justamente quando
+ *   ninguém está olhando o wp-admin.
+ * - Tradução é dependência, não dado: a versão sai do `composer.lock` e é
+ *   reproduzível a partir do repositório. O volume é para o que só existe em
+ *   produção (banco, uploads, e o que o painel instalou).
+ *
+ * ⚠️ O motivo original era outro e não vale mais: `DISALLOW_FILE_MODS` estava
+ * ligado e o instalador de idioma do WordPress simplesmente não existia. A
+ * trava saiu, e `web/app/languages` hoje é symlink para o volume — o painel
+ * consegue baixar idioma e o download persiste. O que este passo grava é
+ * reescrito pela imagem a cada boot; idioma instalado pelo painel, não.
  *
  * A versão de cada pacote vem do que está instalado, não de um número escrito
  * à mão: o `composer.lock` manda, e um bump de core sem bump de tradução
